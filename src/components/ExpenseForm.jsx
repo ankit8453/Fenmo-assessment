@@ -36,6 +36,11 @@ function getInitialFormState() {
 const initialFieldErrors = { amount: null, category: null, description: null, date: null };
 const initialTouched = { amount: false, category: false, description: false, date: false };
 
+function truncateKey(key) {
+  if (typeof key !== 'string' || key.length < 14) return key;
+  return `${key.slice(0, 8)}…${key.slice(-4)}`;
+}
+
 export default function ExpenseForm({ onCreated }) {
   const [form, setForm] = useState(getInitialFormState);
   const [categoryMode, setCategoryMode] = useState('predefined');
@@ -48,6 +53,12 @@ export default function ExpenseForm({ onCreated }) {
   const [fieldErrors, setFieldErrors] = useState(initialFieldErrors);
   const [touched, setTouched] = useState(initialTouched);
 
+  // Idempotency UI state — purely visibility on top of the existing ref/header
+  // logic. Generation/reuse rules are unchanged.
+  const [submittingKey, setSubmittingKey] = useState(null);
+  const [isRetryAttempt, setIsRetryAttempt] = useState(false);
+  const [lastSubmittedKey, setLastSubmittedKey] = useState(null);
+
   const idempotencyKeyRef = useRef(null);
 
   function revalidateField(name, nextForm) {
@@ -59,7 +70,10 @@ export default function ExpenseForm({ onCreated }) {
     const { name, value } = e.target;
     const nextForm = { ...form, [name]: value };
     setForm(nextForm);
-    if (successMessage) setSuccessMessage('');
+    if (successMessage) {
+      setSuccessMessage('');
+      setLastSubmittedKey(null);
+    }
     if (touched[name]) revalidateField(name, nextForm);
   }
 
@@ -86,12 +100,19 @@ export default function ExpenseForm({ onCreated }) {
 
     setErrorMessage('');
     setSuccessMessage('');
-    setIsSubmitting(true);
+    setLastSubmittedKey(null);
+
+    // Determine retry-vs-fresh BEFORE we touch the ref, so the panel can
+    // render the correct badge for this attempt.
+    const isRetry = idempotencyKeyRef.current !== null;
+    setIsRetryAttempt(isRetry);
 
     if (!idempotencyKeyRef.current) {
       idempotencyKeyRef.current = uuidv4();
     }
     const key = idempotencyKeyRef.current;
+    setSubmittingKey(key);
+    setIsSubmitting(true);
 
     try {
       const res = await fetch('/api/expenses', {
@@ -110,8 +131,13 @@ export default function ExpenseForm({ onCreated }) {
         setFieldErrors(initialFieldErrors);
         setTouched(initialTouched);
         idempotencyKeyRef.current = null;
+        setIsRetryAttempt(false);
+        setLastSubmittedKey(key);
         setSuccessMessage('Expense added successfully');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        setTimeout(() => {
+          setSuccessMessage('');
+          setLastSubmittedKey(null);
+        }, 3000);
 
         // Decouple the form from the list — the Expenses list listens for this
         // and refetches without the form needing to know it exists.
@@ -140,6 +166,7 @@ export default function ExpenseForm({ onCreated }) {
       setErrorMessage('Network error. Check your connection and try again.');
     } finally {
       setIsSubmitting(false);
+      setSubmittingKey(null);
     }
   }
 
@@ -296,11 +323,37 @@ export default function ExpenseForm({ onCreated }) {
           {isSubmitting ? 'Adding...' : 'Add Expense'}
         </button>
 
+        {isSubmitting && submittingKey && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mt-3">
+            <div className="text-xs text-blue-900 font-medium">
+              {isRetryAttempt && (
+                <span className="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded mr-2 font-medium">
+                  Retry
+                </span>
+              )}
+              Submission ID:
+            </div>
+            <div className="text-xs text-blue-700 font-mono">
+              {truncateKey(submittingKey)}
+            </div>
+            <div className="text-xs text-blue-600 italic mt-1">
+              If this submission is retried, the same ID is reused — your expense won't be duplicated.
+            </div>
+          </div>
+        )}
+
         {errorMessage && (
           <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
         )}
         {successMessage && (
-          <div className="text-sm text-green-600 mt-2">{successMessage}</div>
+          <div className="mt-2">
+            <div className="text-sm text-green-600">{successMessage}</div>
+            {lastSubmittedKey && (
+              <div className="text-xs text-gray-500 font-mono">
+                Saved with ID: {truncateKey(lastSubmittedKey)}
+              </div>
+            )}
+          </div>
         )}
       </form>
     </div>
