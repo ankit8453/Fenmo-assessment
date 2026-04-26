@@ -1,24 +1,14 @@
+// Mirror of /api/_lib/validation.js. Keep these in sync. Server validation is
+// the source of truth — this exists only for inline UX feedback. The trade-off
+// of duplication is documented in the README. For a larger codebase, this would
+// move to a shared package.
+
 const MAX_AMOUNT = 99999999.99;
 const MAX_CATEGORY_LEN = 50;
 const MAX_DESCRIPTION_LEN = 500;
 const AMOUNT_RE = /^\d+(\.\d{1,2})?$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Validates and normalizes an expense input object.
- *
- * @param {object} input - May contain { amount, category, description, date }.
- * @returns {{
- *   valid: boolean,
- *   errors: string[],
- *   fieldErrors: { amount: string|null, category: string|null, description: string|null, date: string|null },
- *   normalized: { amount: string, category: string, description: string|null, date: string } | null
- * }}
- *   When valid, `normalized` contains cleaned values ready for DB insert.
- *   When invalid, `normalized` is null, `errors` lists every failure, and
- *   `fieldErrors` maps each field to its first error (for inline UI display).
- *   This function never throws.
- */
 export function validateExpense(input) {
   const errors = [];
   const fieldErrors = { amount: null, category: null, description: null, date: null };
@@ -90,7 +80,6 @@ export function validateExpense(input) {
   } else if (typeof rawDate !== 'string' || !DATE_RE.test(rawDate)) {
     fail('date', 'Date is required and must be in YYYY-MM-DD format');
   } else {
-    // Confirm it's a real calendar date (e.g. reject 2024-02-30).
     const [y, m, d] = rawDate.split('-').map(Number);
     const asDate = new Date(Date.UTC(y, m - 1, d));
     const realCalendarDate =
@@ -100,7 +89,6 @@ export function validateExpense(input) {
     if (!realCalendarDate) {
       fail('date', 'Date is required and must be in YYYY-MM-DD format');
     } else {
-      // Allow up to today + 1 day (UTC) to absorb timezone skew.
       const now = new Date();
       const maxAllowed = Date.UTC(
         now.getUTCFullYear(),

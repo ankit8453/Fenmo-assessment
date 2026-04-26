@@ -114,8 +114,11 @@ Indexes:
 - **Total formatting**: total is computed server-side and returned as a string by the API. The frontend formats it with Indian locale conventions (`en-IN`) for display, but the source of truth remains the API string to avoid float precision loss.
 - **UX states**: form and list both handle loading, error, empty, and success states explicitly. Network failures and server errors show distinct user-facing messages. New rows are briefly highlighted on creation as a visual confirmation, and filter/sort refetches dim the existing table instead of flashing a full loader.
 - **Category input**: a predefined dropdown with an "Other" fallback for custom values. This prevents common data-quality issues like "Food" vs "Foods" while still allowing flexibility. The backend remains permissive (any non-empty string up to 50 chars) so historical data stays valid and frontend constraints can evolve independently.
+- **Validation**: identical rules run on both client (inline UX feedback per field, on blur and on submit) and server (authoritative). The server is the source of truth — the client copy exists purely to give the user faster feedback. Errors only display after a field is blurred or after a submit attempt.
 
 ## Trade-offs Made
+
+- **Duplicated validation logic**: `src/lib/validation.js` is a copy of `api/_lib/validation.js`. Vercel serverless functions don't share modules with the Vite build, and a shared package would be over-engineered for a project this size. The duplication is documented at the top of the client copy. For a larger codebase this would move to a shared workspace package (e.g. `packages/validation`).
 
 ## What I Did Not Do
 
