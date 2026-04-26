@@ -31,10 +31,13 @@ export default function ExpenseForm({ onCreated }) {
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    // Clear stale success once the user starts editing again.
+    if (successMessage) setSuccessMessage('');
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSubmitting) return; // defense in depth — button is also disabled
     setErrorMessage('');
     setSuccessMessage('');
     setIsSubmitting(true);
@@ -84,11 +87,11 @@ export default function ExpenseForm({ onCreated }) {
         setErrorMessage(msg);
       } else {
         // 5xx — keep the key so the next attempt is a true idempotent retry.
-        setErrorMessage('Something went wrong. Please try again.');
+        setErrorMessage('Server error. Please try again in a moment.');
       }
     } catch {
-      // Network failure — keep the key for retry safety.
-      setErrorMessage('Something went wrong. Please try again.');
+      // fetch threw — almost always a network failure. Keep the key for retry.
+      setErrorMessage('Network error. Check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }

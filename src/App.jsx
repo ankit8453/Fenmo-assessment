@@ -4,16 +4,14 @@ import ExpenseList from './components/ExpenseList'
 
 function App() {
   const [health, setHealth] = useState(null)
-  const [healthError, setHealthError] = useState(null)
 
   useEffect(() => {
     fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => setHealth(data))
-      .catch((err) => setHealthError(err.message))
+      .catch(() => {
+        // Health check is a debug aid, not user-facing — swallow failures.
+      })
   }, [])
 
   return (
@@ -26,11 +24,11 @@ function App() {
           <ExpenseList />
         </div>
 
-        <div className="text-xs text-gray-400 mt-8">
-          {health && <span>API: {JSON.stringify(health)}</span>}
-          {healthError && <span>API error: {healthError}</span>}
-          {!health && !healthError && <span>API: loading…</span>}
-        </div>
+        {health && (
+          <div className="text-xs text-gray-400 mt-8">
+            API: {JSON.stringify(health)}
+          </div>
+        )}
       </div>
     </div>
   )

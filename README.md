@@ -112,6 +112,7 @@ Indexes:
 - **Server-computed totals**: the list total is calculated via SQL `SUM(amount)` on the `NUMERIC` column to preserve exact precision; returned as a string for the same reason.
 - **Server-side filter and sort**: filtering (`?category`) and sorting (`?sort`) happen via query params on `GET /api/expenses`. The frontend is stateless about the filtered set — it always trusts the server. This avoids client/server drift and keeps the (server-computed) total accurate. Available filter categories in the UI are derived from the currently-fetched expense set.
 - **Total formatting**: total is computed server-side and returned as a string by the API. The frontend formats it with Indian locale conventions (`en-IN`) for display, but the source of truth remains the API string to avoid float precision loss.
+- **UX states**: form and list both handle loading, error, empty, and success states explicitly. Network failures and server errors show distinct user-facing messages. New rows are briefly highlighted on creation as a visual confirmation, and filter/sort refetches dim the existing table instead of flashing a full loader.
 
 ## Trade-offs Made
 
