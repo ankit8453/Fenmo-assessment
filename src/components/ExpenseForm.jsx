@@ -172,7 +172,7 @@ export default function ExpenseForm({ onCreated }) {
 
   const baseInputClass =
     'w-full border rounded-lg px-3.5 py-2.5 text-sm bg-white text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
-  const okFieldClass = 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500';
+  const okFieldClass = 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500';
   const errFieldClass = 'border-red-300 focus:ring-red-500 focus:border-red-500';
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5';
 
@@ -273,7 +273,7 @@ export default function ExpenseForm({ onCreated }) {
                   setForm(nextForm);
                   if (touched.category) revalidateField('category', nextForm);
                 }}
-                className="text-sm text-indigo-600 underline mt-1"
+                className="text-sm text-emerald-600 underline mt-1"
               >
                 ← Choose from list
               </button>
@@ -321,17 +321,24 @@ export default function ExpenseForm({ onCreated }) {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {isSubmitting ? 'Adding...' : 'Add Expense'}
-        </button>
+        <div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-auto px-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-emerald-400 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            >
+              {isSubmitting ? 'Adding...' : 'Add Expense'}
+            </button>
+          </div>
+          <div className="text-[11px] text-gray-400 mt-2 text-right">
+            Press Enter in any field to add
+          </div>
+        </div>
 
         {isSubmitting && submittingKey && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2 mt-3">
-            <div className="text-xs text-indigo-900 font-medium">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 mt-3">
+            <div className="text-xs text-emerald-900 font-medium">
               {isRetryAttempt && (
                 <span className="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded mr-2 font-medium">
                   Retry
@@ -339,10 +346,10 @@ export default function ExpenseForm({ onCreated }) {
               )}
               Submission ID:
             </div>
-            <div className="text-xs text-indigo-700 font-mono">
+            <div className="text-xs text-emerald-700 font-mono">
               {truncateKey(submittingKey)}
             </div>
-            <div className="text-xs text-indigo-600 italic mt-1">
+            <div className="text-xs text-emerald-600 italic mt-1">
               If this submission is retried, the same ID is reused — your expense won't be duplicated.
             </div>
           </div>

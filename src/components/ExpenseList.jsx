@@ -107,8 +107,33 @@ export default function ExpenseList() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [expenses, selectedCategory]);
 
+  // Per-category breakdown for the mini visualization. Uses parseFloat sums
+  // (acceptable for visualization only — the authoritative total still comes
+  // from the API).
+  const categoryBreakdown = useMemo(() => {
+    if (expenses.length === 0) return [];
+    const totals = new Map();
+    let overall = 0;
+    for (const e of expenses) {
+      const amt = parseFloat(e.amount);
+      if (!Number.isFinite(amt)) continue;
+      totals.set(e.category, (totals.get(e.category) || 0) + amt);
+      overall += amt;
+    }
+    if (overall <= 0) return [];
+    return Array.from(totals.entries())
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: Math.min(100, (amount / overall) * 100),
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [expenses]);
+
+  const showCategoryBreakdown = expenses.length >= 2 && categoryBreakdown.length >= 2;
+
   const selectClass =
-    'text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
+    'text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500';
 
   // Show the full loader only when we have nothing to dim (initial load
   // or hard error retry). Mid-flight filter/sort refetches dim the existing
@@ -168,7 +193,7 @@ export default function ExpenseList() {
           <button
             type="button"
             onClick={() => fetchExpenses(selectedCategory, sortBy)}
-            className="text-indigo-600 underline ml-1"
+            className="text-emerald-600 underline ml-1"
           >
             Retry
           </button>
@@ -177,11 +202,11 @@ export default function ExpenseList() {
 
       {!showFullLoader && !errorMessage && (
         <div className={`transition-opacity duration-200 ${dimDuringRefetch ? 'opacity-60' : ''}`}>
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg px-4 py-4 mb-5 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-lg px-4 py-4 mb-5 flex items-center justify-between">
             <span className="text-sm text-gray-600 font-medium">
               {selectedCategory ? (
                 <>
-                  Total (<span className="font-semibold text-indigo-700">{selectedCategory}</span>)
+                  Total (<span className="font-semibold text-emerald-700">{selectedCategory}</span>)
                 </>
               ) : (
                 'Total'
@@ -204,50 +229,60 @@ export default function ExpenseList() {
               <button
                 type="button"
                 onClick={() => setSelectedCategory('')}
-                className="text-indigo-600 underline ml-1"
+                className="text-emerald-600 underline ml-1"
               >
                 Clear filter
               </button>
             </div>
           )}
 
+          {showContent && showCategoryBreakdown && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Spending by category
+              </h3>
+              <div className="space-y-2">
+                {categoryBreakdown.map((row) => (
+                  <div key={row.category} className="flex items-center gap-3">
+                    <div className="text-sm text-gray-700 w-24 truncate">{row.category}</div>
+                    <div className="h-2 bg-gray-100 rounded-full flex-1 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full"
+                        style={{ width: `${row.percentage}%` }}
+                      />
+                    </div>
+                    <div className="text-sm font-medium text-gray-900 w-24 text-right tabular-nums">
+                      <span className="text-gray-500 mr-1">₹</span>{formatINR(row.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {showContent && (
-            <div className="overflow-x-auto -mx-2">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Description</th>
-                    <th className="py-3 px-4 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map((e) => (
-                    <tr
-                      key={e.id}
-                      className={`border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-1000 ${
-                        highlightedId === e.id ? 'bg-indigo-50/50' : ''
-                      }`}
-                    >
-                      <td className="py-3.5 px-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                        {formatDate(e.date)}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                          {e.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 max-w-xs truncate text-sm text-gray-600">
-                        {e.description ? e.description : <span className="text-gray-300">—</span>}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap">
-                        <span className="text-gray-500 mr-1">₹</span>{formatINR(e.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              {expenses.map((e) => (
+                <div
+                  key={e.id}
+                  className={`bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between gap-4 hover:border-emerald-300 hover:shadow-sm transition-all duration-1000 ${
+                    highlightedId === e.id ? 'ring-2 ring-emerald-200' : ''
+                  }`}
+                >
+                  <div className="flex flex-col shrink-0">
+                    <div className="text-xs text-gray-500">{formatDate(e.date)}</div>
+                    <span className="inline-block bg-emerald-50 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-full mt-1 w-fit">
+                      {e.category}
+                    </span>
+                  </div>
+                  <div className="flex-1 text-sm text-gray-700 min-w-0 truncate">
+                    {e.description ? e.description : <span className="text-gray-300">—</span>}
+                  </div>
+                  <div className="text-lg font-semibold text-gray-900 tabular-nums whitespace-nowrap shrink-0">
+                    <span className="text-gray-500 mr-1">₹</span>{formatINR(e.amount)}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
