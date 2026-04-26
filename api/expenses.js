@@ -6,8 +6,11 @@ const MIN_KEY_LEN = 8;
 const MAX_KEY_LEN = 200;
 
 export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    return handleGet(req, res);
+  }
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -97,4 +100,64 @@ function serializeRow(row) {
     date: row.date,
     created_at: row.created_at,
   };
+}
+
+async function handleGet(req, res) {
+  try {
+    const query = req.query || {};
+
+    // Step A/B — read & validate query params
+    let categoryFilter = null;
+    if (query.category !== undefined) {
+      const c = query.category;
+      if (typeof c !== 'string' || c.trim() === '' || c.length > 50) {
+        return res.status(400).json({ error: 'Invalid category parameter' });
+      }
+      categoryFilter = c;
+    }
+
+    const sortMode = query.sort === 'date_desc' ? 'date_desc' : 'default';
+    const orderClause =
+      sortMode === 'date_desc'
+        ? 'ORDER BY date DESC, created_at DESC'
+        : 'ORDER BY created_at DESC';
+
+    // Step C — build & execute (parameterized, with conditional WHERE)
+    const whereClause = categoryFilter ? 'WHERE category = $1' : '';
+    const params = categoryFilter ? [categoryFilter] : [];
+
+    const rowsSql = `
+      SELECT id, amount, category, description,
+             to_char(date, 'YYYY-MM-DD') AS date,
+             created_at
+      FROM expenses
+      ${whereClause}
+      ${orderClause}
+    `;
+
+    // Step D — total computed in SQL (NUMERIC SUM, formatted to "X.XX")
+    const totalSql = `
+      SELECT to_char(COALESCE(SUM(amount), 0), 'FM999999999990.00') AS total
+      FROM expenses
+      ${whereClause}
+    `;
+
+    const [rowsResult, totalResult] = await Promise.all([
+      sql.query(rowsSql, params),
+      sql.query(totalSql, params),
+    ]);
+
+    return res.status(200).json({
+      expenses: rowsResult.rows.map(serializeRow),
+      total: totalResult.rows[0].total,
+      count: rowsResult.rows.length,
+      filters: {
+        category: categoryFilter,
+        sort: sortMode,
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/expenses failed:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
