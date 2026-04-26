@@ -4,7 +4,7 @@
 
 ## Tech Stack
 
-- React (Vite) + Tailwind CSS v3 for the frontend
+- React (Vite) + Tailwind CSS v3 for the frontend (indigo accent palette, Inter typography, currency-aware inputs)
 - Node.js serverless functions in `/api` (Vercel-style)
 - Vercel Postgres (Neon-backed) for persistence
 
@@ -115,6 +115,7 @@ Indexes:
 - **UX states**: form and list both handle loading, error, empty, and success states explicitly. Network failures and server errors show distinct user-facing messages. New rows are briefly highlighted on creation as a visual confirmation, and filter/sort refetches dim the existing table instead of flashing a full loader.
 - **Category input**: a predefined dropdown with an "Other" fallback for custom values. This prevents common data-quality issues like "Food" vs "Foods" while still allowing flexibility. The backend remains permissive (any non-empty string up to 50 chars) so historical data stays valid and frontend constraints can evolve independently.
 - **Validation**: identical rules run on both client (inline UX feedback per field, on blur and on submit) and server (authoritative). The server is the source of truth — the client copy exists purely to give the user faster feedback. Errors only display after a field is blurred or after a submit attempt.
+- **Visual design**: indigo accent on neutral grays — restrained palette to keep focus on data, not chrome. Amounts use `tabular-nums` and a muted ₹ symbol for clean number alignment in the table.
 
 ## Trade-offs Made
 

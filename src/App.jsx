@@ -16,16 +16,21 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-3xl font-bold text-center mb-8">Expense Tracker</h1>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Expense Tracker</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Record your expenses and track where your money goes.
+          </p>
+        </header>
 
         <div className="space-y-6">
           <ExpenseForm />
           <ExpenseList />
         </div>
 
-        {health && (
-          <div className="text-xs text-gray-400 mt-8">
+        {health?.status === 'ok' && (
+          <div className="text-[10px] text-gray-400 mt-12 text-center">
             API: {JSON.stringify(health)}
           </div>
         )}

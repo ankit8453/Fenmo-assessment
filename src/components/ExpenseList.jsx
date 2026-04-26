@@ -108,7 +108,7 @@ export default function ExpenseList() {
   }, [expenses, selectedCategory]);
 
   const selectClass =
-    'text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+    'text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
 
   // Show the full loader only when we have nothing to dim (initial load
   // or hard error retry). Mid-flight filter/sort refetches dim the existing
@@ -122,12 +122,12 @@ export default function ExpenseList() {
   const dimDuringRefetch = isFetching && expenses.length > 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-lg font-semibold">Expenses</h2>
+        <div className="flex items-baseline">
+          <h2 className="text-xl font-semibold text-gray-900">Expenses</h2>
           {!isFetching && !errorMessage && expenses.length > 0 && (
-            <span className="text-xs text-gray-500">
+            <span className="text-sm font-normal text-gray-500 ml-2">
               {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'}
             </span>
           )}
@@ -159,16 +159,16 @@ export default function ExpenseList() {
       </div>
 
       {showFullLoader && (
-        <div className="text-sm text-gray-500">Loading expenses...</div>
+        <div className="py-8 text-center text-sm text-gray-500">Loading expenses...</div>
       )}
 
       {!isFetching && errorMessage && (
-        <div className="text-sm text-red-600">
+        <div className="text-sm text-red-600 py-4">
           {errorMessage}{' '}
           <button
             type="button"
             onClick={() => fetchExpenses(selectedCategory, sortBy)}
-            className="text-blue-600 underline ml-1"
+            className="text-indigo-600 underline ml-1"
           >
             Retry
           </button>
@@ -177,28 +177,34 @@ export default function ExpenseList() {
 
       {!showFullLoader && !errorMessage && (
         <div className={`transition-opacity duration-200 ${dimDuringRefetch ? 'opacity-60' : ''}`}>
-          <div className="bg-gray-50 rounded-md px-4 py-3 mb-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg px-4 py-4 mb-5 flex items-center justify-between">
             <span className="text-sm text-gray-600 font-medium">
-              {selectedCategory ? `Total (${selectedCategory})` : 'Total'}
+              {selectedCategory ? (
+                <>
+                  Total (<span className="font-semibold text-indigo-700">{selectedCategory}</span>)
+                </>
+              ) : (
+                'Total'
+              )}
             </span>
-            <span className="text-xl font-bold text-gray-900">
-              ₹{formatINR(total)}
+            <span className="text-2xl font-bold text-gray-900 tabular-nums">
+              <span className="text-gray-500 mr-1">₹</span>{formatINR(total)}
             </span>
           </div>
 
           {showUnfilteredEmpty && (
-            <div className="text-sm text-gray-500 text-center py-6">
+            <div className="py-12 text-center text-gray-500 text-sm">
               No expenses yet. Add your first expense above.
             </div>
           )}
 
           {showFilteredEmpty && (
-            <div className="text-sm text-gray-500 text-center py-6">
+            <div className="py-12 text-center text-gray-500 text-sm">
               No expenses match this filter.{' '}
               <button
                 type="button"
                 onClick={() => setSelectedCategory('')}
-                className="text-blue-600 underline ml-1"
+                className="text-indigo-600 underline ml-1"
               >
                 Clear filter
               </button>
@@ -206,37 +212,37 @@ export default function ExpenseList() {
           )}
 
           {showContent && (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-2">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-gray-200">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Category</th>
-                    <th className="py-2 pr-4">Description</th>
-                    <th className="py-2 pl-4 text-right">Amount</th>
+                  <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Description</th>
+                    <th className="py-3 px-4 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.map((e) => (
                     <tr
                       key={e.id}
-                      className={`border-b border-gray-100 transition-colors duration-1000 ${
-                        highlightedId === e.id ? 'bg-yellow-50' : ''
+                      className={`border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-1000 ${
+                        highlightedId === e.id ? 'bg-indigo-50/50' : ''
                       }`}
                     >
-                      <td className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-sm text-gray-700 font-medium">
                         {formatDate(e.date)}
                       </td>
-                      <td className="py-3 pr-4">
-                        <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+                      <td className="py-3.5 px-4">
+                        <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">
                           {e.category}
                         </span>
                       </td>
-                      <td className="py-3 pr-4 max-w-xs truncate text-gray-600">
-                        {e.description ? e.description : <span className="text-gray-400">—</span>}
+                      <td className="py-3.5 px-4 max-w-xs truncate text-sm text-gray-600">
+                        {e.description ? e.description : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="py-3 pl-4 text-right font-medium text-gray-900 whitespace-nowrap">
-                        ₹{e.amount}
+                      <td className="py-3.5 px-4 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap">
+                        <span className="text-gray-500 mr-1">₹</span>{formatINR(e.amount)}
                       </td>
                     </tr>
                   ))}

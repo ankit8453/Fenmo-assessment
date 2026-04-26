@@ -171,33 +171,41 @@ export default function ExpenseForm({ onCreated }) {
   }
 
   const baseInputClass =
-    'w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 disabled:bg-gray-100 disabled:cursor-not-allowed';
-  const okFieldClass = 'border-gray-300 focus:ring-blue-500 focus:border-blue-500';
-  const errFieldClass = 'border-red-400 focus:ring-red-500 focus:border-red-500';
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+    'w-full border rounded-lg px-3.5 py-2.5 text-sm bg-white text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed';
+  const okFieldClass = 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500';
+  const errFieldClass = 'border-red-300 focus:ring-red-500 focus:border-red-500';
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5';
 
   const showErr = (name) => touched[name] && fieldErrors[name];
   const fieldClass = (name) => `${baseInputClass} ${showErr(name) ? errFieldClass : okFieldClass}`;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold mb-4">Add Expense</h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+      <h2 className="text-xl font-semibold text-gray-900 mb-1">Add Expense</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Fill in the details to log a new expense.
+      </p>
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <div>
           <label htmlFor="amount" className={labelClass}>Amount (₹)</label>
-          <input
-            id="amount"
-            name="amount"
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="0.00"
-            disabled={isSubmitting}
-            value={form.amount}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={fieldClass('amount')}
-          />
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
+              ₹
+            </span>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              disabled={isSubmitting}
+              value={form.amount}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              className={`${fieldClass('amount')} pl-7`}
+            />
+          </div>
           {showErr('amount') && (
             <p className="text-xs text-red-600 mt-1">{fieldErrors.amount}</p>
           )}
@@ -231,7 +239,7 @@ export default function ExpenseForm({ onCreated }) {
               if (touched.category) revalidateField('category', nextForm);
             }}
             onBlur={handleBlur}
-            className={`${fieldClass('category')} bg-white pr-8`}
+            className={`${fieldClass('category')} pr-8`}
           >
             <option value="" disabled>Select a category</option>
             {PREDEFINED_CATEGORIES.map((c) => (
@@ -265,7 +273,7 @@ export default function ExpenseForm({ onCreated }) {
                   setForm(nextForm);
                   if (touched.category) revalidateField('category', nextForm);
                 }}
-                className="text-sm text-blue-600 underline mt-1"
+                className="text-sm text-indigo-600 underline mt-1"
               >
                 ← Choose from list
               </button>
@@ -316,16 +324,14 @@ export default function ExpenseForm({ onCreated }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`w-full bg-blue-600 text-white py-2 rounded-md font-medium transition ${
-            isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
-          }`}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           {isSubmitting ? 'Adding...' : 'Add Expense'}
         </button>
 
         {isSubmitting && submittingKey && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mt-3">
-            <div className="text-xs text-blue-900 font-medium">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-md px-3 py-2 mt-3">
+            <div className="text-xs text-indigo-900 font-medium">
               {isRetryAttempt && (
                 <span className="inline-block bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded mr-2 font-medium">
                   Retry
@@ -333,23 +339,25 @@ export default function ExpenseForm({ onCreated }) {
               )}
               Submission ID:
             </div>
-            <div className="text-xs text-blue-700 font-mono">
+            <div className="text-xs text-indigo-700 font-mono">
               {truncateKey(submittingKey)}
             </div>
-            <div className="text-xs text-blue-600 italic mt-1">
+            <div className="text-xs text-indigo-600 italic mt-1">
               If this submission is retried, the same ID is reused — your expense won't be duplicated.
             </div>
           </div>
         )}
 
         {errorMessage && (
-          <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
+          <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-800 mt-2">
+            {errorMessage}
+          </div>
         )}
         {successMessage && (
-          <div className="mt-2">
-            <div className="text-sm text-green-600">{successMessage}</div>
+          <div className="bg-green-50 border border-green-200 rounded-md px-3 py-2 mt-2">
+            <div className="text-sm text-green-800">{successMessage}</div>
             {lastSubmittedKey && (
-              <div className="text-xs text-gray-500 font-mono">
+              <div className="text-xs text-green-700/80 font-mono mt-0.5">
                 Saved with ID: {truncateKey(lastSubmittedKey)}
               </div>
             )}
