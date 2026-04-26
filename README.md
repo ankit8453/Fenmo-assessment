@@ -110,6 +110,7 @@ Indexes:
 - **Idempotency**: clients send an `Idempotency-Key` header (UUID); the server stores it with a `UNIQUE` constraint and returns the original response on retry. This prevents duplicate expenses from double-clicks, page refreshes, and network retries.
 - **Money handling**: amounts are stored as `NUMERIC(12,2)` in Postgres and returned as strings to clients to preserve exact decimal precision and avoid floating-point errors.
 - **Server-computed totals**: the list total is calculated via SQL `SUM(amount)` on the `NUMERIC` column to preserve exact precision; returned as a string for the same reason.
+- **Server-side filter and sort**: filtering (`?category`) and sorting (`?sort`) happen via query params on `GET /api/expenses`. The frontend is stateless about the filtered set — it always trusts the server. This avoids client/server drift and keeps the (server-computed) total accurate. Available filter categories in the UI are derived from the currently-fetched expense set.
 
 ## Trade-offs Made
 

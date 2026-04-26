@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function formatDate(yyyymmdd) {
   if (!yyyymmdd) return '';
@@ -16,12 +16,19 @@ export default function ExpenseList() {
   const [expenses, setExpenses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy] = useState('default');
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (category, sort) => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await fetch('/api/expenses');
+      const params = new URLSearchParams();
+      if (category) params.set('category', category);
+      if (sort === 'date_desc') params.set('sort', 'date_desc');
+      const qs = params.toString();
+      const url = qs ? `/api/expenses?${qs}` : '/api/expenses';
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setExpenses(Array.isArray(data?.expenses) ? data.expenses : []);
@@ -32,22 +39,70 @@ export default function ExpenseList() {
     }
   }, []);
 
+  // Re-fetch on mount, on filter/sort change, and on 'expense:created'.
+  // The listener closes over the current filter/sort; this effect rebinds
+  // whenever they change, so the listener never reads stale values.
+  // Note: if a filter is active and the new expense doesn't match it, the
+  // refetched list correctly excludes it — we trust the server's filter.
   useEffect(() => {
-    fetchExpenses();
-    const onCreated = () => fetchExpenses();
+    fetchExpenses(selectedCategory, sortBy);
+    const onCreated = () => fetchExpenses(selectedCategory, sortBy);
     window.addEventListener('expense:created', onCreated);
     return () => window.removeEventListener('expense:created', onCreated);
-  }, [fetchExpenses]);
+  }, [fetchExpenses, selectedCategory, sortBy]);
+
+  // Categories come from the currently-fetched set. We also force-include
+  // the selected category so the <select> always has a matching <option>
+  // even when the filter returns zero rows.
+  const uniqueCategories = useMemo(() => {
+    const set = new Set(expenses.map((e) => e.category).filter(Boolean));
+    if (selectedCategory) set.add(selectedCategory);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [expenses, selectedCategory]);
+
+  const selectClass =
+    'text-sm border border-gray-300 rounded-md px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+  const showFilteredEmpty =
+    !isLoading && !errorMessage && expenses.length === 0 && selectedCategory !== '';
+  const showUnfilteredEmpty =
+    !isLoading && !errorMessage && expenses.length === 0 && selectedCategory === '';
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="text-lg font-semibold">Expenses</h2>
-        {!isLoading && !errorMessage && expenses.length > 0 && (
-          <span className="text-xs text-gray-500">
-            {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'}
-          </span>
-        )}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-lg font-semibold">Expenses</h2>
+          {!isLoading && !errorMessage && expenses.length > 0 && (
+            <span className="text-xs text-gray-500">
+              {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'}
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <select
+            aria-label="Filter by category"
+            className={selectClass}
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="">All categories</option>
+            {uniqueCategories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Sort"
+            className={selectClass}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="default">Newest first (added)</option>
+            <option value="date_desc">Newest first (date)</option>
+          </select>
+        </div>
       </div>
 
       {isLoading && (
@@ -59,7 +114,7 @@ export default function ExpenseList() {
           {errorMessage}{' '}
           <button
             type="button"
-            onClick={fetchExpenses}
+            onClick={() => fetchExpenses(selectedCategory, sortBy)}
             className="text-blue-600 underline ml-1"
           >
             Retry
@@ -67,9 +122,22 @@ export default function ExpenseList() {
         </div>
       )}
 
-      {!isLoading && !errorMessage && expenses.length === 0 && (
+      {showUnfilteredEmpty && (
         <div className="text-sm text-gray-500 text-center py-6">
           No expenses yet. Add your first expense above.
+        </div>
+      )}
+
+      {showFilteredEmpty && (
+        <div className="text-sm text-gray-500 text-center py-6">
+          No expenses match this filter.{' '}
+          <button
+            type="button"
+            onClick={() => setSelectedCategory('')}
+            className="text-blue-600 underline ml-1"
+          >
+            Clear filter
+          </button>
         </div>
       )}
 
