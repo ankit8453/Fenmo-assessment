@@ -2,6 +2,8 @@
 
 ## Live URL
 
+https://fenmo-assessment-virid.vercel.app/
+
 ## Tech Stack
 
 - React (Vite) + Tailwind CSS v3 for the frontend (indigo accent palette, Inter typography, currency-aware inputs)
@@ -124,4 +126,27 @@ Indexes:
 
 ## What I Did Not Do
 
+- Did not build edit/delete endpoints or UI. They are outside the acceptance criteria. The data model and indexes support both trivially, but the UI layer would need confirmation flows and additional state handling.
+- Did not add user accounts or authentication. The brief describes single-user expense recording, so multi-user support and auth were out of scope.
+- Did not add automated tests. The validation utility, the idempotency replay path, and the total calculation are the highest-value targets for tests. I prioritized shipping correct, well-handled features over a partial test suite under the timebox. With more time I would add Jest tests for `validateExpense` (boundary cases) and integration tests for the POST endpoint covering the idempotency replay and the unique-violation race.
+- Did not add a separate per-category summary view. The "Spending by category" mini panel above the list is a lightweight take on the brief's "summary view" Nice-to-Have without committing to a full reporting screen.
+- Did not add a charting library. The horizontal bar visualization is implemented with plain divs and Tailwind. Recharts or Chart.js would be overkill for a small per-category visualization and would add bundle weight.
+- Did not add toast notifications or a global notification system. Inline success and error messages near the form and list are sufficient and don't pull the user's attention away from their current task.
+- Did not add an ORM (Prisma, Drizzle). For a single table with two queries, raw parameterized SQL via the Postgres tagged-template client is clearer and has zero ramp-up.
+- Did not add CSRF protection or rate limiting. Production code would; for a sandbox assessment with no auth and no public exposure beyond the candidate, neither adds meaningful security.
+- Did not migrate to TypeScript. Plain JavaScript was faster for the timebox. The validation utility is well-typed via JSDoc.
+- Did not add pagination. The list returns all expenses unfiltered. Fine for an assessment dataset of dozens of rows; would need cursor-based pagination at scale.
+- Did not add optimistic UI updates on the list. After submitting, the list re-fetches from the server via a custom event. Optimistic updates would feel snappier but add complexity around reconciling with the server response, especially with idempotency replays returning the original row instead of the new payload.
+
 ## What I'd Improve With More Time
+
+1. Add a test suite. Jest unit tests for `validateExpense` covering all boundary cases (negative amounts, future dates, decimal precision overflow), integration tests for the POST endpoint covering happy path + idempotency replay + unique-violation race, and an end-to-end Cypress test for the form-to-list flow.
+2. Edit and delete operations with optimistic updates and undo. Soft-delete in the database to preserve history.
+3. Pagination with cursor-based navigation and a virtualized list for large datasets.
+4. A proper reporting view: trends over time, category breakdowns by month, cumulative spend, and a simple budget-vs-actual comparison.
+5. CSV import and export.
+6. Authentication (Clerk or NextAuth) and multi-user support, with row-level security in Postgres so each user only sees their own data.
+7. Recurring expenses for subscriptions and monthly bills.
+8. Multi-currency support, with a base currency and per-expense currency conversion.
+9. A mobile app via React Native sharing the API.
+10. Observability: structured logging, error reporting via Sentry, and lightweight analytics on submission failures and retries to detect real-world reliability issues.
