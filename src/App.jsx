@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ExpenseForm from './components/ExpenseForm'
 
 function App() {
   const [health, setHealth] = useState(null)
@@ -16,33 +17,23 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="max-w-3xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-3xl font-bold text-center mb-8">Expense Tracker</h1>
 
-        <div className="mb-8 p-4 rounded border border-gray-200 bg-white text-sm">
-          <div className="font-semibold mb-2">API Health</div>
-          {health && (
-            <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-              {JSON.stringify(health, null, 2)}
-            </pre>
-          )}
-          {healthError && (
-            <div className="text-red-600">Error: {healthError}</div>
-          )}
-          {!health && !healthError && (
-            <div className="text-gray-500">Loading…</div>
-          )}
+        <div className="mb-6">
+          <ExpenseForm />
         </div>
 
-        <section className="mb-6 p-4 rounded border border-gray-300 bg-white">
-          <h2 className="text-xl font-semibold mb-2">Add Expense</h2>
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-2">Expenses</h2>
           <div className="text-gray-400 text-sm">Placeholder</div>
         </section>
 
-        <section className="p-4 rounded border border-gray-300 bg-white">
-          <h2 className="text-xl font-semibold mb-2">Expenses</h2>
-          <div className="text-gray-400 text-sm">Placeholder</div>
-        </section>
+        <div className="text-xs text-gray-400 mt-8">
+          {health && <span>API: {JSON.stringify(health)}</span>}
+          {healthError && <span>API error: {healthError}</span>}
+          {!health && !healthError && <span>API: loading…</span>}
+        </div>
       </div>
     </div>
   )
