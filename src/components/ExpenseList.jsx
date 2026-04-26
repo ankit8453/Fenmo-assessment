@@ -12,8 +12,20 @@ function formatDate(yyyymmdd) {
   });
 }
 
+// Format the API's total string for display only — keep the raw string in state
+// as the source of truth (preserves NUMERIC precision).
+function formatINR(amountStr) {
+  const num = Number(amountStr);
+  if (!Number.isFinite(num)) return amountStr;
+  return num.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export default function ExpenseList() {
   const [expenses, setExpenses] = useState([]);
+  const [total, setTotal] = useState('0.00');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -32,6 +44,7 @@ export default function ExpenseList() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setExpenses(Array.isArray(data?.expenses) ? data.expenses : []);
+      setTotal(typeof data?.total === 'string' ? data.total : '0.00');
     } catch {
       setErrorMessage('Could not load expenses. Please refresh.');
     } finally {
@@ -104,6 +117,17 @@ export default function ExpenseList() {
           </select>
         </div>
       </div>
+
+      {!isLoading && !errorMessage && (
+        <div className="bg-gray-50 rounded-md px-4 py-3 mb-4 flex items-center justify-between">
+          <span className="text-sm text-gray-600 font-medium">
+            {selectedCategory ? `Total (${selectedCategory})` : 'Total'}
+          </span>
+          <span className="text-xl font-bold text-gray-900">
+            ₹{formatINR(total)}
+          </span>
+        </div>
+      )}
 
       {isLoading && (
         <div className="text-sm text-gray-500">Loading expenses...</div>
