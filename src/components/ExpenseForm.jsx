@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 function todayLocal() {
   const d = new Date();
@@ -8,29 +9,93 @@ function todayLocal() {
   return `${y}-${m}-${day}`;
 }
 
-const initialForm = {
-  amount: '',
-  category: '',
-  description: '',
-  date: todayLocal(),
-};
+function getInitialFormState() {
+  return {
+    amount: '',
+    category: '',
+    description: '',
+    date: todayLocal(),
+  };
+}
 
-export default function ExpenseForm() {
-  const [form, setForm] = useState(initialForm);
+export default function ExpenseForm({ onCreated }) {
+  const [form, setForm] = useState(getInitialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Held outside React state so it survives re-renders without triggering them.
+  // The key sticks across retries (network/5xx) and resets on success or 4xx.
+  const idempotencyKeyRef = useRef(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // TODO: wire to POST /api/expenses with idempotency key in next step
-    console.log(form);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = uuidv4();
+    }
+    const key = idempotencyKeyRef.current;
+
+    try {
+      const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': key,
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (res.status === 201 || res.status === 200) {
+        const newExpense = await res.json();
+        setForm(getInitialFormState());
+        idempotencyKeyRef.current = null;
+        setSuccessMessage('Expense added successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+
+        // Decouple the form from the list — the Expenses list listens for this
+        // and refetches without the form needing to know it exists.
+        window.dispatchEvent(new CustomEvent('expense:created', { detail: newExpense }));
+        if (typeof onCreated === 'function') {
+          onCreated(newExpense);
+        }
+      } else if (res.status >= 400 && res.status < 500) {
+        // Bad input — this is a new attempt, not a retry. Drop the key.
+        idempotencyKeyRef.current = null;
+        let msg = 'Invalid input.';
+        try {
+          const data = await res.json();
+          if (Array.isArray(data?.details) && data.details.length) {
+            msg = data.details.join(' | ');
+          } else if (data?.error) {
+            msg = data.error;
+          }
+        } catch {
+          /* keep default message */
+        }
+        setErrorMessage(msg);
+      } else {
+        // 5xx — keep the key so the next attempt is a true idempotent retry.
+        setErrorMessage('Something went wrong. Please try again.');
+      }
+    } catch {
+      // Network failure — keep the key for retry safety.
+      setErrorMessage('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const inputClass =
-    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed';
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
   return (
@@ -47,6 +112,7 @@ export default function ExpenseForm() {
             min="0.01"
             placeholder="0.00"
             required
+            disabled={isSubmitting}
             value={form.amount}
             onChange={handleChange}
             className={inputClass}
@@ -62,6 +128,7 @@ export default function ExpenseForm() {
             maxLength="50"
             placeholder="e.g., Food, Transport, Bills"
             required
+            disabled={isSubmitting}
             value={form.category}
             onChange={handleChange}
             className={inputClass}
@@ -76,6 +143,7 @@ export default function ExpenseForm() {
             rows="2"
             maxLength="500"
             placeholder="Add a note about this expense"
+            disabled={isSubmitting}
             value={form.description}
             onChange={handleChange}
             className={inputClass}
@@ -89,6 +157,7 @@ export default function ExpenseForm() {
             name="date"
             type="date"
             required
+            disabled={isSubmitting}
             value={form.date}
             onChange={handleChange}
             className={inputClass}
@@ -97,10 +166,20 @@ export default function ExpenseForm() {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-md font-medium hover:bg-blue-700 transition"
+          disabled={isSubmitting}
+          className={`w-full bg-blue-600 text-white py-2 rounded-md font-medium transition ${
+            isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
+          }`}
         >
-          Add Expense
+          {isSubmitting ? 'Adding...' : 'Add Expense'}
         </button>
+
+        {errorMessage && (
+          <div className="text-sm text-red-600 mt-2">{errorMessage}</div>
+        )}
+        {successMessage && (
+          <div className="text-sm text-green-600 mt-2">{successMessage}</div>
+        )}
       </form>
     </div>
   );
