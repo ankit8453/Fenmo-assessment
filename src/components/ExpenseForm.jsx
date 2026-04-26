@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+// Predefined categories. 'Other' triggers a custom text input.
+const PREDEFINED_CATEGORIES = [
+  'Food',
+  'Transport',
+  'Bills',
+  'Shopping',
+  'Entertainment',
+  'Health',
+  'Education',
+  'Travel',
+  'Groceries',
+  'Other',
+];
+
 function todayLocal() {
   const d = new Date();
   const y = d.getFullYear();
@@ -20,6 +34,9 @@ function getInitialFormState() {
 
 export default function ExpenseForm({ onCreated }) {
   const [form, setForm] = useState(getInitialFormState);
+  // UI-only state: 'predefined' (dropdown) vs 'custom' (custom text input).
+  // The submitted payload is always form.category — a plain string.
+  const [categoryMode, setCategoryMode] = useState('predefined');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -60,6 +77,7 @@ export default function ExpenseForm({ onCreated }) {
       if (res.status === 201 || res.status === 200) {
         const newExpense = await res.json();
         setForm(getInitialFormState());
+        setCategoryMode('predefined');
         idempotencyKeyRef.current = null;
         setSuccessMessage('Expense added successfully');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -124,18 +142,67 @@ export default function ExpenseForm({ onCreated }) {
 
         <div>
           <label htmlFor="category" className={labelClass}>Category</label>
-          <input
+          <select
             id="category"
             name="category"
-            type="text"
-            maxLength="50"
-            placeholder="e.g., Food, Transport, Bills"
             required
             disabled={isSubmitting}
-            value={form.category}
-            onChange={handleChange}
-            className={inputClass}
-          />
+            value={
+              categoryMode === 'custom'
+                ? 'Other'
+                : PREDEFINED_CATEGORIES.includes(form.category)
+                ? form.category
+                : ''
+            }
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === 'Other') {
+                setCategoryMode('custom');
+                setForm((prev) => ({ ...prev, category: '' }));
+              } else {
+                setCategoryMode('predefined');
+                setForm((prev) => ({ ...prev, category: v }));
+              }
+              if (successMessage) setSuccessMessage('');
+            }}
+            className={`${inputClass} bg-white pr-8`}
+          >
+            <option value="" disabled>Select a category</option>
+            {PREDEFINED_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+
+          {categoryMode === 'custom' && (
+            <div className="mt-3">
+              <label htmlFor="customCategory" className={labelClass}>
+                Custom category
+              </label>
+              <input
+                id="customCategory"
+                name="category"
+                type="text"
+                maxLength="50"
+                placeholder="Enter a category name"
+                required
+                disabled={isSubmitting}
+                value={form.category}
+                onChange={handleChange}
+                className={inputClass}
+              />
+              <div className="text-xs text-gray-500 mt-1">Max 50 characters</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryMode('predefined');
+                  setForm((prev) => ({ ...prev, category: '' }));
+                }}
+                className="text-sm text-blue-600 underline mt-1"
+              >
+                ← Choose from list
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
